@@ -1,0 +1,37 @@
+flowchart LR
+    user["Developer / Operator"]
+    grafana["Grafana<br/>Dashboards + Alert Views"]
+    prometheus["Prometheus<br/>Metrics + Rules"]
+    alertmanager["Alertmanager<br/>Routing + Grouping"]
+    blackbox["Blackbox Exporter<br/>HTTP Probes"]
+    loki["Loki<br/>Centralized Logs"]
+    promtail["Promtail<br/>Log Shipping"]
+    nodeexp["Node Exporter<br/>Host Metrics"]
+    cadvisor["cAdvisor<br/>Container Metrics"]
+    app["Checkout Service<br/>Metrics + Health + Logs"]
+    docker["Docker Compose Network"]
+
+    user --> grafana
+    grafana --> prometheus
+    grafana --> loki
+    grafana --> alertmanager
+
+    prometheus --> alertmanager
+    prometheus --> app
+    prometheus --> nodeexp
+    prometheus --> cadvisor
+    prometheus --> blackbox
+    blackbox --> app
+
+    app --> promtail
+    promtail --> loki
+
+    docker --- app
+    docker --- prometheus
+    docker --- grafana
+    docker --- loki
+    docker --- promtail
+    docker --- alertmanager
+    docker --- nodeexp
+    docker --- cadvisor
+    docker --- blackbox

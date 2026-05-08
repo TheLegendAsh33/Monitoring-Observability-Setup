@@ -1,0 +1,105 @@
+groups:
+  - name: application-health
+    rules:
+      - alert: ServiceDown
+        expr: up{job="app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: Checkout service metrics endpoint is down
+          description: Prometheus has not been able to scrape the checkout service for at least 1 minute.
+
+      - alert: ReadinessProbeFailing
+        expr: probe_success{job="blackbox-http", probe_target="http://app:3000/health/ready"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: Checkout service readiness probe is failing
+          description: The readiness endpoint is returning a non-2xx response, which usually means the app is unhealthy or still starting.
+
+      - alert: HighApplicationErrorRate
+        expr: |
+          (
+            sum(rate(http_errors_total{job="app",status_code=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(http_requests_total{job="app"}[5m])), 0.001)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: application
+        annotations:
+          summary: Checkout service error rate is above 5%
+          description: Error responses have exceeded 5% of all traffic over the last 5 minutes.
+
+      - alert: HighApplicationLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(http_request_duration_seconds_bucket{job="app"}[5m]))
+          ) > 1.2
+        for: 10m
+        labels:
+          severity: warning
+          team: application
+        annotations:
+          summary: Checkout service p95 latency is above 1.2s
+          description: The 95th percentile API latency has remained above 1.2 seconds for 10 minutes.
+
+      - alert: AppProcessHighCPUUsage
+        expr: avg_over_time(app_process_cpu_usage_percent{job="app"}[5m]) > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: application
+        annotations:
+          summary: Application process CPU usage is high
+          description: The Node.js process has averaged more than 80% CPU over the last 5 minutes.
+
+  - name: infrastructure-health
+    rules:
+      - alert: HostHighCPUUsage
+        expr: |
+          (
+            100 - (avg by (instance) (rate(node_cpu_seconds_total{job="node-exporter",mode="idle"}[5m])) * 100)
+          ) > 85
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: Host CPU usage is above 85%
+          description: The monitored Docker host has sustained high CPU usage for more than 10 minutes.
+
+      - alert: HostHighMemoryUsage
+        expr: |
+          (
+            (1 - (node_memory_MemAvailable_bytes{job="node-exporter"} / node_memory_MemTotal_bytes{job="node-exporter"}))
+            * 100
+          ) > 85
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: Host memory usage is above 85%
+          description: Available host memory has dropped below 15% for at least 10 minutes.
+
+      - alert: ContainerHighMemoryUsage
+        expr: |
+          (
+            container_memory_working_set_bytes{job="cadvisor",container_label_com_docker_compose_service="app"}
+            /
+            clamp_min(container_spec_memory_limit_bytes{job="cadvisor",container_label_com_docker_compose_service="app"}, 1)
+          ) > 0.80
+        for: 10m
+        labels:
+          severity: warning
+          team: application
+        annotations:
+          summary: Checkout container memory usage is above 80%
+          description: The application container is using more than 80% of its configured memory limit.

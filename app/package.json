@@ -1,0 +1,14 @@
+{
+  "name": "checkout-service",
+  "version": "1.0.0",
+  "description": "Sample containerized web application instrumented for Prometheus and Grafana.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "lint:config": "node --check src/server.js && node --check src/metrics.js && node --check src/logger.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

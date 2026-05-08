@@ -1,0 +1,7 @@
+node_modules/
+.env
+.DS_Store
+monitoring/grafana/data/
+monitoring/prometheus/data/
+monitoring/loki/data/
+logs/
